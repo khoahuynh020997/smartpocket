@@ -836,6 +836,17 @@
                 return;
             }
 
+            // Cảnh báo khi chi vượt số dư túi
+            if (amount > pocket.balance) {
+                const over = amount - pocket.balance;
+                const confirmMsg = `Túi "${pocket.name}" chỉ còn ${formatVND(pocket.balance)}.\n` +
+                    `Bạn đang chi ${formatVND(amount)} (vượt ${formatVND(over)}).\n\n` +
+                    `Số dư túi sẽ bị âm. Bạn có chắc muốn tiếp tục?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+            }
+
             // Deduct from pocket
             pocket.balance -= amount;
 
@@ -860,7 +871,11 @@
             clearKeypadInput();
             document.getElementById('exp-note').value = '';
 
-            showToast(`Đã chi ${formatVND(amount)} từ túi ${pocket.name}`);
+            if (pocket.balance < 0) {
+                showToast(`Đã chi ${formatVND(amount)}. Túi "${pocket.name}" đang âm ${formatVND(Math.abs(pocket.balance))}`, 'error');
+            } else {
+                showToast(`Đã chi ${formatVND(amount)} từ túi ${pocket.name}`);
+            }
         }
 
         
