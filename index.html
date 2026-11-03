@@ -97,6 +97,76 @@
         * {
             touch-action: manipulation;
         }
+
+        /* ===== Hiệu ứng chuyên nghiệp ===== */
+        button, .tap-target {
+            transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active, .tap-target:active {
+            transform: scale(0.94);
+            opacity: 0.92;
+        }
+        /* Nút chính (xanh) nhấn sâu hơn */
+        button.bg-emerald-500:active,
+        button[class*="bg-emerald-"]:active {
+            transform: scale(0.96);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+        }
+        /* Keypad số */
+        .keypad-btn {
+            transition: transform 0.1s ease, background-color 0.12s ease, color 0.12s ease;
+        }
+        .keypad-btn:active {
+            transform: scale(0.88);
+            background-color: #10b981 !important;
+            color: #0f172a !important;
+        }
+        /* Chip chọn nhanh */
+        .chip-btn:active {
+            transform: scale(0.9);
+        }
+        /* Bottom nav */
+        nav button {
+            transition: color 0.2s ease, transform 0.12s ease;
+        }
+        nav button:active {
+            transform: scale(0.9);
+        }
+        /* Card túi tiền */
+        #pockets-grid > div {
+            transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+        }
+        #pockets-grid > div:active {
+            transform: scale(0.98);
+        }
+        /* Toast animation */
+        #toast {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        #toast.show {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: translate(-50%, 0) !important;
+        }
+        /* Modal fade */
+        .modal-backdrop {
+            transition: opacity 0.2s ease;
+        }
+        /* Success pulse nhẹ trên số dư */
+        @keyframes balance-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+            100% { transform: scale(1); }
+        }
+        .balance-pulse {
+            animation: balance-pulse 0.4s ease;
+        }
+        /* Ripple nhẹ (pseudo) */
+        .btn-press {
+            position: relative;
+            overflow: hidden;
+        }
     </style>
 </head>
 <body class="bg-[#0b0f19] text-slate-100 min-h-screen pb-28 md:pb-8 flex flex-col justify-between">
@@ -195,18 +265,18 @@
                                 <!-- Number Pad 2 Rows right beside display -->
                                 <div class="col-span-6 sm:col-span-5 flex flex-col gap-1">
                                     <div class="grid grid-cols-5 gap-1">
-                                        <button type="button" onclick="appendKeypadDigit('1')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">1</button>
-                                        <button type="button" onclick="appendKeypadDigit('2')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">2</button>
-                                        <button type="button" onclick="appendKeypadDigit('3')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">3</button>
-                                        <button type="button" onclick="appendKeypadDigit('4')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">4</button>
-                                        <button type="button" onclick="appendKeypadDigit('5')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">5</button>
+                                        <button type="button" onclick="appendKeypadDigit('1')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">1</button>
+                                        <button type="button" onclick="appendKeypadDigit('2')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">2</button>
+                                        <button type="button" onclick="appendKeypadDigit('3')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">3</button>
+                                        <button type="button" onclick="appendKeypadDigit('4')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">4</button>
+                                        <button type="button" onclick="appendKeypadDigit('5')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">5</button>
                                     </div>
                                     <div class="grid grid-cols-5 gap-1">
-                                        <button type="button" onclick="appendKeypadDigit('6')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">6</button>
-                                        <button type="button" onclick="appendKeypadDigit('7')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">7</button>
-                                        <button type="button" onclick="appendKeypadDigit('8')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">8</button>
-                                        <button type="button" onclick="appendKeypadDigit('9')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">9</button>
-                                        <button type="button" onclick="appendKeypadDigit('0')" class="h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs transition active:scale-95 border border-slate-700/60 shadow-sm flex items-center justify-center">0</button>
+                                        <button type="button" onclick="appendKeypadDigit('6')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">6</button>
+                                        <button type="button" onclick="appendKeypadDigit('7')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">7</button>
+                                        <button type="button" onclick="appendKeypadDigit('8')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">8</button>
+                                        <button type="button" onclick="appendKeypadDigit('9')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">9</button>
+                                        <button type="button" onclick="appendKeypadDigit('0')" class="keypad-btn h-8 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 font-bold rounded-lg text-slate-200 text-xs border border-slate-700/60 shadow-sm flex items-center justify-center">0</button>
                                     </div>
                                 </div>
                             </div>
@@ -214,11 +284,11 @@
                             <!-- Quick Preset Amount Chips -->
                             <div class="flex items-center gap-1.5 pt-1 overflow-x-auto no-scrollbar">
                                 <span class="text-[10px] text-slate-400 shrink-0">Chọn nhanh:</span>
-                                <button type="button" onclick="setPresetAmount('20')" class="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium transition active:scale-95 shrink-0">20k</button>
-                                <button type="button" onclick="setPresetAmount('50')" class="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium transition active:scale-95 shrink-0">50k</button>
-                                <button type="button" onclick="setPresetAmount('100')" class="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium transition active:scale-95 shrink-0">100k</button>
-                                <button type="button" onclick="setPresetAmount('200')" class="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium transition active:scale-95 shrink-0">200k</button>
-                                <button type="button" onclick="setPresetAmount('500')" class="px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium transition active:scale-95 shrink-0">500k</button>
+                                <button type="button" onclick="setPresetAmount('20')" class="chip-btn px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium shrink-0">20k</button>
+                                <button type="button" onclick="setPresetAmount('50')" class="chip-btn px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium shrink-0">50k</button>
+                                <button type="button" onclick="setPresetAmount('100')" class="chip-btn px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium shrink-0">100k</button>
+                                <button type="button" onclick="setPresetAmount('200')" class="chip-btn px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium shrink-0">200k</button>
+                                <button type="button" onclick="setPresetAmount('500')" class="chip-btn px-2.5 py-1 bg-slate-800 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-slate-700/80 rounded-lg text-[11px] font-medium shrink-0">500k</button>
                             </div>
                         </div>
 
@@ -509,6 +579,18 @@
             { id: 'p4', name: 'Đầu Tư & Phát Triển', balance: 0, ratio: 15, icon: 'trending-up', color: '#8b5cf6' }
         ];
 
+        // Haptic feedback (rung nhẹ như app chuyên nghiệp)
+        function haptic(type = 'light') {
+            try {
+                if (!navigator.vibrate) return;
+                if (type === 'light') navigator.vibrate(8);
+                else if (type === 'medium') navigator.vibrate(15);
+                else if (type === 'success') navigator.vibrate([10, 30, 10]);
+                else if (type === 'error') navigator.vibrate([30, 20, 30]);
+                else if (type === 'warning') navigator.vibrate([20, 15, 20]);
+            } catch (e) {}
+        }
+
         // STATE MANAGEMENT
         let state = {
             pockets: [],
@@ -563,6 +645,7 @@
         }
 
         function appendKeypadDigit(digit) {
+            haptic('light');
             const expDisplay = document.getElementById('exp-amount-display');
             let currentRaw = expDisplay.value.replace(/\D/g, '');
             
@@ -578,6 +661,7 @@
         }
 
         function clearKeypadInput() {
+            haptic('light');
             const expDisplay = document.getElementById('exp-amount-display');
             const expHidden = document.getElementById('exp-amount');
             expDisplay.value = '';
@@ -585,6 +669,7 @@
         }
 
         function setPresetAmount(kThousandValue) {
+            haptic('light');
             updateQuickAmountDisplay(kThousandValue);
         }
 
@@ -656,21 +741,24 @@
 
             toastMsg.innerText = message;
             if (type === 'error') {
+                haptic('error');
                 toastIcon.setAttribute('data-lucide', 'alert-circle');
                 toastIcon.className = 'w-4 h-4 text-rose-400';
             } else {
+                haptic('success');
                 toastIcon.setAttribute('data-lucide', 'check-circle');
                 toastIcon.className = 'w-4 h-4 text-emerald-400';
             }
             if (window.lucide) lucide.createIcons();
 
+            toast.classList.add('show');
             toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
-            toast.classList.add('opacity-100', 'translate-y-0');
 
-            setTimeout(() => {
-                toast.classList.remove('opacity-100', 'translate-y-0');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
                 toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
-            }, 2500);
+            }, 2800);
         }
 
         // RENDER FUNCTIONS
@@ -1047,6 +1135,14 @@
             clearKeypadInput();
             document.getElementById('exp-note').value = '';
 
+            // Hiệu ứng pulse số dư
+            const balEl = document.getElementById('total-balance');
+            if (balEl) {
+                balEl.classList.remove('balance-pulse');
+                void balEl.offsetWidth;
+                balEl.classList.add('balance-pulse');
+            }
+
             if (pocket.balance < 0) {
                 showToast(`Đã chi ${formatVND(amount)}. Túi "${pocket.name}" đang âm ${formatVND(Math.abs(pocket.balance))}`, 'error');
             } else {
@@ -1057,6 +1153,7 @@
         
         // SALARY HANDLING
         function openSalaryModal() {
+            haptic('medium');
             document.getElementById('salary-modal').classList.remove('hidden');
             document.getElementById('salary-amount-display').value = '';
             document.getElementById('salary-amount').value = 0;
@@ -1082,6 +1179,7 @@
         }
 
         function closeSalaryModal() {
+            haptic('light');
             document.getElementById('salary-modal').classList.add('hidden');
         }
 
@@ -1123,11 +1221,18 @@
             saveTransactions();
             renderAll();
             closeSalaryModal();
+            const balEl = document.getElementById('total-balance');
+            if (balEl) {
+                balEl.classList.remove('balance-pulse');
+                void balEl.offsetWidth;
+                balEl.classList.add('balance-pulse');
+            }
             showToast(`Đã phân bổ ${formatVND(amount)} vào các túi`);
         }
 
         // TAB SWITCHING
         function switchTab(tabName) {
+            haptic('light');
             // Ẩn tất cả tab
             document.getElementById('tab-dashboard').classList.add('hidden');
             document.getElementById('tab-history').classList.add('hidden');
@@ -1156,6 +1261,7 @@
 
         // ADD POCKET MODAL
         function openAddPocketModal() {
+            haptic('medium');
             document.getElementById('add-pocket-modal').classList.remove('hidden');
             document.getElementById('new-pocket-name').value = '';
             document.getElementById('new-pocket-ratio').value = 0;
@@ -1163,6 +1269,7 @@
         }
 
         function closeAddPocketModal() {
+            haptic('light');
             document.getElementById('add-pocket-modal').classList.add('hidden');
         }
 
