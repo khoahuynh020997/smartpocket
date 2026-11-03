@@ -162,6 +162,11 @@
         .balance-pulse {
             animation: balance-pulse 0.4s ease;
         }
+        #total-balance, #month-income, #month-expense {
+            transition: color 0.25s ease;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.01em;
+        }
         /* Ripple nhẹ (pseudo) */
         .btn-press {
             position: relative;
@@ -720,6 +725,65 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
         }
 
+        // Hiệu ứng đếm số mượt (count up / count down)
+        const _animState = {};
+        function animateNumber(el, targetValue, options = {}) {
+            if (!el) return;
+            const duration = options.duration || 550;
+            const key = el.id || el.dataset.animKey || 'default';
+            const startValue = _animState[key] != null ? _animState[key] : (parseInt(el.dataset.rawValue || '0', 10) || 0);
+            const endValue = targetValue;
+            _animState[key] = endValue;
+            el.dataset.rawValue = endValue;
+
+            // Không animate lần đầu load (tránh đếm từ 0 mỗi refresh)
+            if (options.skipFirst && el.dataset.animReady !== '1') {
+                el.dataset.animReady = '1';
+                el.innerText = formatVND(endValue);
+                return;
+            }
+            el.dataset.animReady = '1';
+
+            if (startValue === endValue) {
+                el.innerText = formatVND(endValue);
+                return;
+            }
+
+            // Hủy animation đang chạy trên element này
+            if (el._animFrame) cancelAnimationFrame(el._animFrame);
+
+            const startTime = performance.now();
+            const diff = endValue - startValue;
+
+            // Easing: easeOutCubic
+            function easeOutCubic(t) {
+                return 1 - Math.pow(1 - t, 3);
+            }
+
+            function frame(now) {
+                const elapsed = now - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const current = Math.round(startValue + diff * easeOutCubic(t));
+                el.innerText = formatVND(current);
+
+                // Đổi màu nhẹ khi đang chạy
+                if (diff > 0) el.style.color = '#34d399';      // tăng → xanh
+                else if (diff < 0) el.style.color = '#fb7185'; // giảm → đỏ
+
+                if (t < 1) {
+                    el._animFrame = requestAnimationFrame(frame);
+                } else {
+                    el.innerText = formatVND(endValue);
+                    // Trả về màu gốc sau 300ms
+                    setTimeout(() => {
+                        el.style.color = '';
+                    }, 320);
+                    el._animFrame = null;
+                }
+            }
+            el._animFrame = requestAnimationFrame(frame);
+        }
+
         function formatCurrencyInput(inputEl, hiddenId) {
             let value = inputEl.value.replace(/\D/g, '');
             if (value === '') {
@@ -885,8 +949,6 @@
         function renderDashboard() {
             // Total balance calculation
             const totalBalance = state.pockets.reduce((sum, p) => sum + p.balance, 0);
-            document.getElementById('total-balance').innerText = formatVND(totalBalance);
-
             // Month Income & Expense Calculation
             const currentMonthStr = new Date().toISOString().slice(0, 7);
             let monthIncome = 0;
@@ -902,8 +964,10 @@
                 }
             });
 
-            document.getElementById('month-income').innerText = formatVND(monthIncome);
-            document.getElementById('month-expense').innerText = formatVND(monthExpense);
+            // Hiệu ứng đếm số mượt cho số dư
+            animateNumber(document.getElementById('total-balance'), totalBalance, { duration: 600, skipFirst: true });
+            animateNumber(document.getElementById('month-income'), monthIncome, { duration: 500, skipFirst: true });
+            animateNumber(document.getElementById('month-expense'), monthExpense, { duration: 500, skipFirst: true });
 
             // Render Pocket Cards
             const grid = document.getElementById('pockets-grid');
