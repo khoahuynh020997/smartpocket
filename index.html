@@ -30,7 +30,7 @@
         }
     </script>
     <!-- Lucide Icons CDN -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.460.0"></script>
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -457,7 +457,12 @@
             loadFromLocalStorage();
             setInitialDates();
             renderAll();
-            lucide.createIcons();
+            // Đợi lucide load xong (trường hợp CDN chậm)
+            if (window.lucide) {
+                lucide.createIcons();
+            } else {
+                setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 500);
+            }
             
             // Listen to salary input typing to update preview live
             document.getElementById('salary-amount-display').addEventListener('input', updateSalaryPreview);
@@ -572,10 +577,12 @@
             if (value === '') {
                 inputEl.value = '';
                 document.getElementById(hiddenId).value = 0;
+                if (hiddenId === 'salary-amount') updateSalaryPreview(0);
             } else {
                 let num = parseInt(value, 10);
                 document.getElementById(hiddenId).value = num;
                 inputEl.value = num.toLocaleString('vi-VN');
+                if (hiddenId === 'salary-amount') updateSalaryPreview(num);
             }
         }
 
@@ -592,7 +599,7 @@
                 toastIcon.setAttribute('data-lucide', 'check-circle');
                 toastIcon.className = 'w-4 h-4 text-emerald-400';
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
             toast.classList.add('opacity-100', 'translate-y-0');
@@ -658,7 +665,7 @@
                 grid.appendChild(card);
             });
 
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderPocketsDropdown() {
@@ -719,7 +726,7 @@
                         Không có giao dịch nào
                     </div>
                 `;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
@@ -755,7 +762,7 @@
                 historyList.appendChild(item);
             });
 
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderSettings() {
@@ -806,7 +813,7 @@
                 ratioBadge.className = 'px-2 py-0.5 rounded text-amber-400 bg-amber-500/10 border border-amber-500/30';
             }
 
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         // QUICK EXPENSE SUBMIT
@@ -856,5 +863,254 @@
             showToast(`Đã chi ${formatVND(amount)} từ túi ${pocket.name}`);
         }
 
+        
         // SALARY HANDLING
-<!-- ... existing code ... />
+        function openSalaryModal() {
+            document.getElementById('salary-modal').classList.remove('hidden');
+            document.getElementById('salary-amount-display').value = '';
+            document.getElementById('salary-amount').value = 0;
+            updateSalaryPreview(0);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function updateSalaryPreview(amount) {
+            const list = document.getElementById('salary-preview-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (!amount || amount <= 0) {
+                list.innerHTML = '<div class="text-slate-500 text-[11px]">Nhập số tiền để xem phân bổ...</div>';
+                return;
+            }
+            state.pockets.forEach(p => {
+                const share = Math.floor(amount * (p.ratio / 100));
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center';
+                row.innerHTML = `<span class="text-slate-300">${p.name} (${p.ratio}%)</span><span class="text-emerald-400 font-medium">${formatVND(share)}</span>`;
+                list.appendChild(row);
+            });
+        }
+
+        function closeSalaryModal() {
+            document.getElementById('salary-modal').classList.add('hidden');
+        }
+
+        function handleSalarySubmit(e) {
+            e.preventDefault();
+            const amount = parseInt(document.getElementById('salary-amount').value, 10);
+            const date = document.getElementById('salary-date').value;
+
+            if (!amount || amount <= 0) {
+                showToast('Vui lòng nhập số tiền hợp lệ', 'error');
+                return;
+            }
+
+            const totalRatio = state.pockets.reduce((sum, p) => sum + (parseInt(p.ratio) || 0), 0);
+            if (totalRatio !== 100) {
+                showToast('Tổng tỷ lệ phân bổ phải bằng 100% trước khi nhập lương', 'error');
+                return;
+            }
+
+            // Phân bổ theo tỷ lệ
+            state.pockets.forEach(pocket => {
+                const share = Math.floor(amount * (pocket.ratio / 100));
+                pocket.balance += share;
+            });
+
+            // Ghi nhận giao dịch thu
+            const tx = {
+                id: 'tx_' + Date.now(),
+                pocketId: 'salary',
+                amount: amount,
+                type: 'income',
+                date: date,
+                note: 'Nhập lương / thu nhập',
+                timestamp: Date.now()
+            };
+            state.transactions.push(tx);
+
+            savePockets();
+            saveTransactions();
+            renderAll();
+            closeSalaryModal();
+            showToast(`Đã phân bổ ${formatVND(amount)} vào các túi`);
+        }
+
+        // TAB SWITCHING
+        function switchTab(tabName) {
+            // Ẩn tất cả tab
+            document.getElementById('tab-dashboard').classList.add('hidden');
+            document.getElementById('tab-history').classList.add('hidden');
+            document.getElementById('tab-settings').classList.add('hidden');
+
+            // Reset nav style
+            document.getElementById('nav-dashboard').className = 'flex flex-col items-center text-slate-400 hover:text-slate-200 transition';
+            document.getElementById('nav-history').className = 'flex flex-col items-center text-slate-400 hover:text-slate-200 transition';
+            document.getElementById('nav-settings').className = 'flex flex-col items-center text-slate-400 hover:text-slate-200 transition';
+
+            // Hiện tab được chọn
+            if (tabName === 'dashboard') {
+                document.getElementById('tab-dashboard').classList.remove('hidden');
+                document.getElementById('nav-dashboard').className = 'flex flex-col items-center text-emerald-400 transition';
+            } else if (tabName === 'history') {
+                document.getElementById('tab-history').classList.remove('hidden');
+                document.getElementById('nav-history').className = 'flex flex-col items-center text-emerald-400 transition';
+                renderHistory();
+            } else if (tabName === 'settings') {
+                document.getElementById('tab-settings').classList.remove('hidden');
+                document.getElementById('nav-settings').className = 'flex flex-col items-center text-emerald-400 transition';
+                renderSettings();
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ADD POCKET MODAL
+        function openAddPocketModal() {
+            document.getElementById('add-pocket-modal').classList.remove('hidden');
+            document.getElementById('new-pocket-name').value = '';
+            document.getElementById('new-pocket-ratio').value = 0;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeAddPocketModal() {
+            document.getElementById('add-pocket-modal').classList.add('hidden');
+        }
+
+        function handleAddPocketSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-pocket-name').value.trim();
+            const ratio = parseInt(document.getElementById('new-pocket-ratio').value, 10) || 0;
+
+            if (!name) {
+                showToast('Vui lòng nhập tên túi', 'error');
+                return;
+            }
+
+            const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+            const icons = ['wallet', 'home', 'piggy-bank', 'gamepad-2', 'trending-up', 'heart', 'star', 'coffee'];
+
+            const newPocket = {
+                id: 'p_' + Date.now(),
+                name: name,
+                balance: 0,
+                ratio: ratio,
+                icon: icons[state.pockets.length % icons.length],
+                color: colors[state.pockets.length % colors.length]
+            };
+
+            state.pockets.push(newPocket);
+            savePockets();
+            renderAll();
+            closeAddPocketModal();
+            showToast(`Đã thêm túi "${name}"`);
+        }
+
+        // POCKET MANAGEMENT
+        function updatePocketName(id, newName) {
+            const pocket = state.pockets.find(p => p.id === id);
+            if (pocket) {
+                pocket.name = newName.trim() || pocket.name;
+                savePockets();
+                renderPocketsDropdown();
+            }
+        }
+
+        function updatePocketRatio(id, newRatio) {
+            const pocket = state.pockets.find(p => p.id === id);
+            if (pocket) {
+                pocket.ratio = parseInt(newRatio, 10) || 0;
+                savePockets();
+                renderSettings(); // cập nhật badge tổng %
+            }
+        }
+
+        function deletePocket(id) {
+            if (state.pockets.length <= 1) {
+                showToast('Phải giữ ít nhất 1 túi tiền', 'error');
+                return;
+            }
+            if (!confirm('Bạn chắc chắn muốn xóa túi này? Số dư sẽ bị mất.')) return;
+
+            state.pockets = state.pockets.filter(p => p.id !== id);
+            // Giữ lại transaction nhưng không liên kết túi cũ
+            savePockets();
+            renderAll();
+            showToast('Đã xóa túi');
+        }
+
+        function savePocketConfigurations() {
+            savePockets();
+            renderAll();
+            showToast('Đã lưu cấu hình túi tiền');
+        }
+
+        // TRANSACTION DELETE
+        function deleteTransaction(txId) {
+            if (!confirm('Xóa giao dịch này?')) return;
+
+            const tx = state.transactions.find(t => t.id === txId);
+            if (!tx) return;
+
+            // Hoàn lại số dư nếu là chi tiêu
+            if (tx.type === 'expense') {
+                const pocket = state.pockets.find(p => p.id === tx.pocketId);
+                if (pocket) pocket.balance += tx.amount;
+            } else if (tx.type === 'income' && tx.pocketId === 'salary') {
+                // Không hoàn lại tự động vì đã chia nhiều túi
+            }
+
+            state.transactions = state.transactions.filter(t => t.id !== txId);
+            savePockets();
+            saveTransactions();
+            renderAll();
+            showToast('Đã xóa giao dịch');
+        }
+
+        // FILTER TOGGLE
+        function toggleFilterInputs() {
+            const type = document.getElementById('filter-type').value;
+            const dateContainer = document.getElementById('filter-date-container');
+            const monthInput = document.getElementById('filter-month');
+            const dayInput = document.getElementById('filter-day');
+            const pocketSelect = document.getElementById('filter-pocket-select');
+            const label = document.getElementById('filter-label');
+
+            // Hide all first
+            if (monthInput) monthInput.classList.add('hidden');
+            if (dayInput) dayInput.classList.add('hidden');
+            if (pocketSelect) pocketSelect.classList.add('hidden');
+            if (dateContainer) dateContainer.classList.remove('hidden');
+
+            if (type === 'month') {
+                if (label) label.innerText = 'Chọn Tháng';
+                if (monthInput) monthInput.classList.remove('hidden');
+            } else if (type === 'day') {
+                if (label) label.innerText = 'Chọn Ngày';
+                if (dayInput) dayInput.classList.remove('hidden');
+            } else if (type === 'pocket') {
+                if (label) label.innerText = 'Chọn Túi';
+                if (pocketSelect) pocketSelect.classList.remove('hidden');
+            } else {
+                // all
+                if (dateContainer) dateContainer.classList.add('hidden');
+            }
+            renderHistory();
+        }
+
+        // RESET DATA
+        function confirmResetData() {
+            if (!confirm('Xóa toàn bộ dữ liệu (túi + giao dịch)? Thao tác này không thể hoàn tác.')) return;
+            localStorage.removeItem('smartpocket_pockets');
+            localStorage.removeItem('smartpocket_transactions');
+            state.pockets = JSON.parse(JSON.stringify(DEFAULT_POCKETS));
+            state.transactions = [];
+            savePockets();
+            saveTransactions();
+            renderAll();
+            showToast('Đã reset toàn bộ dữ liệu');
+        }
+
+        // Ensure icons after every major action
+        // (lucide.createIcons already called in most places)
+    </script>
+</body>
+</html>
