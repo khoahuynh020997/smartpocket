@@ -31,6 +31,8 @@
     </script>
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@0.460.0"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -199,6 +201,20 @@
                             <span>Xác Nhận Chi Tiêu</span>
                         </button>
                     </form>
+                </div>
+
+                <!-- Monthly Chart -->
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-800/80 shadow-md">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-bold flex items-center gap-1.5 text-slate-200 uppercase tracking-wider">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i>
+                            Chi tiêu 6 tháng gần nhất
+                        </h2>
+                    </div>
+                    <div class="relative h-48">
+                        <canvas id="monthly-chart"></canvas>
+                    </div>
+                    <p id="chart-empty" class="text-center text-xs text-slate-500 py-8 hidden">Chưa có dữ liệu chi tiêu</p>
                 </div>
 
                 <!-- Pockets Grid -->
@@ -611,11 +627,124 @@
         }
 
         // RENDER FUNCTIONS
+        let monthlyChartInstance = null;
+
         function renderAll() {
             renderDashboard();
             renderPocketsDropdown();
             renderHistory();
             renderSettings();
+            renderMonthlyChart();
+        }
+
+        function renderMonthlyChart() {
+            const canvas = document.getElementById('monthly-chart');
+            const emptyEl = document.getElementById('chart-empty');
+            if (!canvas || typeof Chart === 'undefined') return;
+
+            // Lấy 6 tháng gần nhất (bao gồm tháng hiện tại)
+            const now = new Date();
+            const labels = [];
+            const expenseData = [];
+            const incomeData = [];
+
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const key = d.toISOString().slice(0, 7); // YYYY-MM
+                const label = `T${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
+                labels.push(label);
+
+                let exp = 0;
+                let inc = 0;
+                state.transactions.forEach(tx => {
+                    if (tx.date && tx.date.startsWith(key)) {
+                        if (tx.type === 'expense') exp += tx.amount;
+                        else if (tx.type === 'income') inc += tx.amount;
+                    }
+                });
+                expenseData.push(exp);
+                incomeData.push(inc);
+            }
+
+            const hasData = expenseData.some(v => v > 0) || incomeData.some(v => v > 0);
+            if (emptyEl) {
+                emptyEl.classList.toggle('hidden', hasData);
+                canvas.style.display = hasData ? 'block' : 'none';
+            }
+
+            if (monthlyChartInstance) {
+                monthlyChartInstance.destroy();
+                monthlyChartInstance = null;
+            }
+
+            if (!hasData) return;
+
+            monthlyChartInstance = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Chi tiêu',
+                            data: expenseData,
+                            backgroundColor: 'rgba(244, 63, 94, 0.7)',
+                            borderColor: 'rgba(244, 63, 94, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        },
+                        {
+                            label: 'Thu nhập',
+                            data: incomeData,
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#94a3b8',
+                                boxWidth: 12,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(ctx.raw) + ' ₫';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value / 1000000).toFixed(1) + 'tr';
+                                    if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                                    return value;
+                                }
+                            },
+                            grid: { color: 'rgba(51, 65, 85, 0.5)' }
+                        }
+                    }
+                }
+            });
         }
 
         function renderDashboard() {
