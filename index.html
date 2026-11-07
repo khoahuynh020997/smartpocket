@@ -334,11 +334,11 @@
                         </h2>
                         <div class="flex items-center bg-slate-900/80 rounded-lg p-0.5 border border-slate-700/60">
                             <button type="button" onclick="setChartPeriod('week')" id="chart-period-week"
-                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">Tuần</button>
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">1 Tuần</button>
                             <button type="button" onclick="setChartPeriod('month')" id="chart-period-month"
-                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-emerald-400 bg-emerald-500/15 transition">Tháng</button>
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-emerald-400 bg-emerald-500/15 transition">1 Tháng</button>
                             <button type="button" onclick="setChartPeriod('year')" id="chart-period-year"
-                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">Năm</button>
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">1 Năm</button>
                         </div>
                     </div>
                     <div class="relative h-48">
@@ -856,25 +856,19 @@
             const labels = [];
             const expenseData = [];
             const incomeData = [];
+            const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
             if (period === 'week') {
-                // 8 tuần gần nhất
-                if (titleEl) titleEl.innerText = 'Chi tiêu 8 tuần gần nhất';
-                for (let i = 7; i >= 0; i--) {
-                    const weekEnd = new Date(now);
-                    weekEnd.setDate(now.getDate() - i * 7);
-                    const weekStart = new Date(weekEnd);
-                    weekStart.setDate(weekEnd.getDate() - 6);
-                    // Label: dd/MM
-                    const label = `${weekStart.getDate()}/${weekStart.getMonth() + 1}`;
-                    labels.push(label);
-
+                // 1 tuần: 7 ngày gần nhất
+                if (titleEl) titleEl.innerText = 'Chi tiêu 1 tuần';
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setDate(now.getDate() - i);
+                    const key = d.toISOString().slice(0, 10);
+                    labels.push(dayNames[d.getDay()]);
                     let exp = 0, inc = 0;
-                    const startStr = weekStart.toISOString().slice(0, 10);
-                    const endStr = weekEnd.toISOString().slice(0, 10);
                     state.transactions.forEach(tx => {
-                        if (!tx.date) return;
-                        if (tx.date >= startStr && tx.date <= endStr) {
+                        if (tx.date === key) {
                             if (tx.type === 'expense') exp += tx.amount;
                             else if (tx.type === 'income') inc += tx.amount;
                         }
@@ -883,15 +877,15 @@
                     incomeData.push(inc);
                 }
             } else if (period === 'year') {
-                // 5 năm gần nhất
-                if (titleEl) titleEl.innerText = 'Chi tiêu 5 năm gần nhất';
-                for (let i = 4; i >= 0; i--) {
-                    const y = now.getFullYear() - i;
-                    labels.push(String(y));
+                // 1 năm: 12 tháng của năm hiện tại
+                if (titleEl) titleEl.innerText = 'Chi tiêu 1 năm (' + now.getFullYear() + ')';
+                const year = now.getFullYear();
+                for (let m = 0; m < 12; m++) {
+                    const key = `${year}-${String(m + 1).padStart(2, '0')}`;
+                    labels.push('T' + (m + 1));
                     let exp = 0, inc = 0;
                     state.transactions.forEach(tx => {
-                        if (!tx.date) return;
-                        if (tx.date.startsWith(String(y))) {
+                        if (tx.date && tx.date.startsWith(key)) {
                             if (tx.type === 'expense') exp += tx.amount;
                             else if (tx.type === 'income') inc += tx.amount;
                         }
@@ -900,15 +894,18 @@
                     incomeData.push(inc);
                 }
             } else {
-                // Mặc định: 6 tháng gần nhất
-                if (titleEl) titleEl.innerText = 'Chi tiêu 6 tháng gần nhất';
-                for (let i = 5; i >= 0; i--) {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                    labels.push(`T${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`);
+                // 1 tháng: từng ngày trong tháng hiện tại
+                if (titleEl) titleEl.innerText = 'Chi tiêu 1 tháng (T' + (now.getMonth() + 1) + ')';
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    // Chỉ hiện label vài ngày để đỡ chật
+                    labels.push(String(day));
                     let exp = 0, inc = 0;
                     state.transactions.forEach(tx => {
-                        if (tx.date && tx.date.startsWith(key)) {
+                        if (tx.date === key) {
                             if (tx.type === 'expense') exp += tx.amount;
                             else if (tx.type === 'income') inc += tx.amount;
                         }
@@ -931,6 +928,8 @@
 
             if (!hasData) return;
 
+            // Tháng có nhiều cột → thu nhỏ tick
+            const isMonth = period === 'month';
             monthlyChartInstance = new Chart(canvas, {
                 type: 'bar',
                 data: {
@@ -942,8 +941,8 @@
                             backgroundColor: 'rgba(244, 63, 94, 0.7)',
                             borderColor: 'rgba(244, 63, 94, 1)',
                             borderWidth: 1,
-                            borderRadius: 6,
-                            barPercentage: 0.6
+                            borderRadius: isMonth ? 3 : 6,
+                            barPercentage: isMonth ? 0.8 : 0.6
                         },
                         {
                             label: 'Thu nhập',
@@ -951,8 +950,8 @@
                             backgroundColor: 'rgba(16, 185, 129, 0.7)',
                             borderColor: 'rgba(16, 185, 129, 1)',
                             borderWidth: 1,
-                            borderRadius: 6,
-                            barPercentage: 0.6
+                            borderRadius: isMonth ? 3 : 6,
+                            barPercentage: isMonth ? 0.8 : 0.6
                         }
                     ]
                 },
@@ -970,6 +969,11 @@
                         },
                         tooltip: {
                             callbacks: {
+                                title: function(items) {
+                                    if (period === 'week') return items[0].label;
+                                    if (period === 'year') return 'Tháng ' + items[0].label.replace('T', '');
+                                    return 'Ngày ' + items[0].label;
+                                },
                                 label: function(ctx) {
                                     return ctx.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(ctx.raw) + ' ₫';
                                 }
@@ -978,7 +982,13 @@
                     },
                     scales: {
                         x: {
-                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { size: isMonth ? 8 : 10 },
+                                maxRotation: 0,
+                                autoSkip: isMonth,
+                                maxTicksLimit: isMonth ? 10 : 12
+                            },
                             grid: { color: 'rgba(51, 65, 85, 0.5)' }
                         },
                         y: {
