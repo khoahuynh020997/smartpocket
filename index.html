@@ -325,13 +325,21 @@
                     </form>
                 </div>
 
-                <!-- Monthly Chart -->
+                <!-- Spending Chart -->
                 <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-800/80 shadow-md">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-xs font-bold flex items-center gap-1.5 text-slate-200 uppercase tracking-wider">
+                    <div class="flex items-center justify-between mb-3 gap-2">
+                        <h2 class="text-xs font-bold flex items-center gap-1.5 text-slate-200 uppercase tracking-wider shrink-0">
                             <i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i>
-                            Chi tiêu 6 tháng gần nhất
+                            <span id="chart-title">Chi tiêu theo tháng</span>
                         </h2>
+                        <div class="flex items-center bg-slate-900/80 rounded-lg p-0.5 border border-slate-700/60">
+                            <button type="button" onclick="setChartPeriod('week')" id="chart-period-week"
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">Tuần</button>
+                            <button type="button" onclick="setChartPeriod('month')" id="chart-period-month"
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-emerald-400 bg-emerald-500/15 transition">Tháng</button>
+                            <button type="button" onclick="setChartPeriod('year')" id="chart-period-year"
+                                class="chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition">Năm</button>
+                        </div>
                     </div>
                     <div class="relative h-48">
                         <canvas id="monthly-chart"></canvas>
@@ -604,6 +612,7 @@
 
         // INITIALIZATION
         window.onload = function() {
+            window._chartPeriod = 'month';
             loadFromLocalStorage();
             setInitialDates();
             renderAll();
@@ -839,30 +848,74 @@
         function renderMonthlyChart() {
             const canvas = document.getElementById('monthly-chart');
             const emptyEl = document.getElementById('chart-empty');
+            const titleEl = document.getElementById('chart-title');
             if (!canvas || typeof Chart === 'undefined') return;
 
-            // Lấy 6 tháng gần nhất (bao gồm tháng hiện tại)
+            const period = window._chartPeriod || 'month';
             const now = new Date();
             const labels = [];
             const expenseData = [];
             const incomeData = [];
 
-            for (let i = 5; i >= 0; i--) {
-                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                const key = d.toISOString().slice(0, 7); // YYYY-MM
-                const label = `T${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`;
-                labels.push(label);
+            if (period === 'week') {
+                // 8 tuần gần nhất
+                if (titleEl) titleEl.innerText = 'Chi tiêu 8 tuần gần nhất';
+                for (let i = 7; i >= 0; i--) {
+                    const weekEnd = new Date(now);
+                    weekEnd.setDate(now.getDate() - i * 7);
+                    const weekStart = new Date(weekEnd);
+                    weekStart.setDate(weekEnd.getDate() - 6);
+                    // Label: dd/MM
+                    const label = `${weekStart.getDate()}/${weekStart.getMonth() + 1}`;
+                    labels.push(label);
 
-                let exp = 0;
-                let inc = 0;
-                state.transactions.forEach(tx => {
-                    if (tx.date && tx.date.startsWith(key)) {
-                        if (tx.type === 'expense') exp += tx.amount;
-                        else if (tx.type === 'income') inc += tx.amount;
-                    }
-                });
-                expenseData.push(exp);
-                incomeData.push(inc);
+                    let exp = 0, inc = 0;
+                    const startStr = weekStart.toISOString().slice(0, 10);
+                    const endStr = weekEnd.toISOString().slice(0, 10);
+                    state.transactions.forEach(tx => {
+                        if (!tx.date) return;
+                        if (tx.date >= startStr && tx.date <= endStr) {
+                            if (tx.type === 'expense') exp += tx.amount;
+                            else if (tx.type === 'income') inc += tx.amount;
+                        }
+                    });
+                    expenseData.push(exp);
+                    incomeData.push(inc);
+                }
+            } else if (period === 'year') {
+                // 5 năm gần nhất
+                if (titleEl) titleEl.innerText = 'Chi tiêu 5 năm gần nhất';
+                for (let i = 4; i >= 0; i--) {
+                    const y = now.getFullYear() - i;
+                    labels.push(String(y));
+                    let exp = 0, inc = 0;
+                    state.transactions.forEach(tx => {
+                        if (!tx.date) return;
+                        if (tx.date.startsWith(String(y))) {
+                            if (tx.type === 'expense') exp += tx.amount;
+                            else if (tx.type === 'income') inc += tx.amount;
+                        }
+                    });
+                    expenseData.push(exp);
+                    incomeData.push(inc);
+                }
+            } else {
+                // Mặc định: 6 tháng gần nhất
+                if (titleEl) titleEl.innerText = 'Chi tiêu 6 tháng gần nhất';
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    labels.push(`T${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`);
+                    let exp = 0, inc = 0;
+                    state.transactions.forEach(tx => {
+                        if (tx.date && tx.date.startsWith(key)) {
+                            if (tx.type === 'expense') exp += tx.amount;
+                            else if (tx.type === 'income') inc += tx.amount;
+                        }
+                    });
+                    expenseData.push(exp);
+                    incomeData.push(inc);
+                }
             }
 
             const hasData = expenseData.some(v => v > 0) || incomeData.some(v => v > 0);
@@ -944,6 +997,22 @@
                     }
                 }
             });
+        }
+
+        function setChartPeriod(period) {
+            window._chartPeriod = period;
+            haptic('light');
+            // Cập nhật style nút
+            ['week', 'month', 'year'].forEach(p => {
+                const btn = document.getElementById('chart-period-' + p);
+                if (!btn) return;
+                if (p === period) {
+                    btn.className = 'chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-emerald-400 bg-emerald-500/15 transition';
+                } else {
+                    btn.className = 'chart-period-btn px-2.5 py-1 rounded-md text-[10px] font-semibold text-slate-400 transition';
+                }
+            });
+            renderMonthlyChart();
         }
 
         function renderDashboard() {
